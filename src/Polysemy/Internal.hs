@@ -30,6 +30,9 @@ module Polysemy.Internal
   , Subsume (..)
   , subsume
   , subsumeUsing
+  , insertAfter
+  , insertBefore
+  , insertAt
   , Embed (..)
   , usingSem
   , liftSem
@@ -50,6 +53,7 @@ import Control.Monad.Fix
 import Control.Monad.IO.Class
 import Data.Functor.Identity
 import Data.Kind
+import GHC.TypeNats (type (-), Nat)
 import Polysemy.Embed.Type
 import Polysemy.Fail.Type
 import Polysemy.Internal.Fixpoint
@@ -532,6 +536,92 @@ subsumeUsing pr =
   in
     go
 {-# INLINE subsumeUsing #-}
+
+
+------------------------------------------------------------------------------
+-- | Finds the effect @e@ in the stack and inserts the effects @es@ after it.
+--
+-- @since TODO
+type family InsertedAfter (e :: Effect) (es :: EffectRow) (r :: EffectRow) :: EffectRow where
+  InsertedAfter e es (e : r) = e : Append es r
+  InsertedAfter e es (e0 : r) = e0 : InsertedAfter e es r
+
+------------------------------------------------------------------------------
+-- | Introduce a set of effects into 'Sem' after the position of the provided
+-- effect @e@. This is intended to be used with a type application:
+--
+-- @
+-- let
+--   sem1 :: Sem [e1, e2, e3, e4, e5] a
+--   sem1 = insertAfter @e2 @[e3, e4] (sem0 :: Sem [e1, e2, e5] a)
+-- @
+--
+-- @since TODO
+insertAfter ::
+  ∀ e es r r' a .
+  r' ~ InsertedAfter e es r =>
+  Subsume r r' =>
+  Sem r a ->
+  Sem r' a
+insertAfter = subsume_
+{-# inline insertAfter #-}
+
+------------------------------------------------------------------------------
+-- | Finds the effect @e@ in the stack and inserts the effects @es@ before it.
+--
+-- @since TODO
+type family InsertedBefore (e :: Effect) (es :: EffectRow) (r :: EffectRow) :: EffectRow where
+  InsertedBefore e es (e : r) = Append es (e : r)
+  InsertedBefore e es (e0 : r) = e0 : InsertedBefore e es r
+
+------------------------------------------------------------------------------
+-- | Introduce a set of effects into 'Sem' before the position of the provided
+-- effect @e@. This is intended to be used with a type application:
+--
+-- @
+-- let
+--   sem1 :: Sem [e1, e2, e3, e4, e5] a
+--   sem1 = insertBefore @e5 @[e3, e4] (sem0 :: Sem [e1, e2, e5] a)
+-- @
+--
+-- @since TODO
+insertBefore ::
+  ∀ e es r r' a .
+  r' ~ InsertedBefore e es r =>
+  Subsume r r' =>
+  Sem r a ->
+  Sem r' a
+insertBefore = subsume_
+{-# inline insertBefore #-}
+
+------------------------------------------------------------------------------
+-- | Inserts the effects @es@ before the @i@th stack entry.
+--
+-- @since TODO
+type family InsertedAt (i :: Nat) (es :: EffectRow) (r :: EffectRow) :: EffectRow where
+  InsertedAt 0 es r = Append es r
+  InsertedAt i es (e0 : r) = e0 : InsertedAt (i - 1) es r
+
+------------------------------------------------------------------------------
+-- | Introduce a set of effects into 'Sem' at the index @i@, before the effect
+-- that previously occupied that position. This is intended to be used with a
+-- type application:
+--
+-- @
+-- let
+--   sem1 :: Sem [e1, e2, e3, e4, e5] a
+--   sem1 = insertAt @2 @[e3, e4] (sem0 :: Sem [e1, e2, e5] a)
+-- @
+--
+-- @since TODO
+insertAt ::
+  ∀ (i :: Nat) es r r' a .
+  r' ~ InsertedAt i es r =>
+  Subsume r r' =>
+  Sem r a ->
+  Sem r' a
+insertAt = subsume_
+{-# inline insertAt #-}
 
 
 ------------------------------------------------------------------------------

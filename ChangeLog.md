@@ -1,5 +1,9 @@
 # Changelog for polysemy
 
+## Unreleased
+* Added combinators for inserting effects into a `Sem` before and after a specified effect, and at an index given as a
+  number.
+
 ## 1.5.0.0 (2021-03-30)
 
 ### Breaking Changes
